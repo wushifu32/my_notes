@@ -1,13 +1,13 @@
 id: 0f3edb6237b54ee4bf2cb6abe9bb88e0
 parent_id: d357e8da3c974062ac74dc72385658a1
-item_type: 
-item_id: 
-item_updated_time: 
+item_type: 1
+item_id: 8f0eed8381da413fbe4b85f6f3bc1a86
+item_updated_time: 1582538232223
 title_diff: 
-body_diff: 
-metadata_diff: 
-encryption_cipher_text: JED010000220195dbe43a48d54378b62ae308e2a14152000456{"iv":"Pd4aYtSaK47PspcxquDhyQ==","v":1,"iter":1000,"ks":128,"ts":64,"mode":"ocb2","adata":"","cipher":"aes","salt":"A7oC9TeqQaY=","ct":"YBlsw5XE8MBwTGeQyBrMQKEgRD1lFS1br0ccJxWxPZSY/vognn1r9dCBAunHK40N++ITWE55RyDAsv6+lEkhFvLggU64O/6vleQj9PTNez1GWtSk4/3l33xzarXUWL+FeXoNVU/bZEPFreBXGGQEs9tjZetHxtsw2M+FxFGGYG6baCIEZtebvpjdLOgSjIdVjUf6lIglitNM+TTQXkf/x/385joBquq4W/ZPF6rl7Mn8IjdccajPegl40j7V+93VYQXa8+TdyQwzDkXdLeVBGuz5/mmEF3PoNODYPfFdF5fx+kZmcMRfZHZbI6YhzzL0fUJWniagvRPffS0rCFAyZylmNeh4GgNUHKGPQjh8tEDhb4FaC+TDQzwstrudE7P34ZPgiCHJ3U46fgEDEZjPqdiDFsf6Ve0PyEd2BLVKtdJEvg4T/OpOKUs5uZKARYfOCT7t6JOtpMFTlPm2o3vnAT/tky6FyFHUhVl1/zix3w1ueXKtYltO+RhHAmFouarUrkzidP6tTITsFgNicg2oZ+CmY8Pjz1kvyTHVwSrDjss7d9gTpFEVd6Zyj+lDzJZm9Rp20UyFVgjel8Y7Fws/2BQXwbGdJq9I3cb6TomjFFVuBUeoCW4l+1KP1U7qWJ4cIlVau5MRgaFERQRjHEm4wvZUf/uE9J9y7xclPjb/12bQNq6VJfAqRqe4zfLAqjvhTmBxIN17i63BRnXeAZlXzW01M/9hPqC9kVgIVvjU2NiGMgPfmKNp8K5sQwllTub46xApzKLo3xZeZeWzCchHO7cl/ir/AOpWs4spQnwymG3bu+eaFgcm/rlMVYeD1hvXI5aYQNohs/qI5lAAVR9NCEOCrBjpmSzFsNFcjumv4nmt6o0OAVprp1DVWOu+sZl8DzYowBXhYnly8dkUIjePqslQrKyOcjN6vqnS/MZ2BFatd6s594koG/Xxf5paOM1Nb8ayb/WWIv4="}
-encryption_applied: 1
+body_diff: "@@ -0,0 +1,295 @@\n+The code of %60vmalloc%60 is on %60mm/vmalloc.c%60%0AThe main data is %60struct vm_struct%60 & %60struct vmap_area%60%0ALike the %60struct vm_area_struct%60 in user space, the vm_struct is listed in a global list named %60vmlist%60.%0AThe address region is managed by a global red-black-tree constructed by vmap_area named %60%60\n"
+metadata_diff: {"new":{},"deleted":[]}
+encryption_cipher_text: 
+encryption_applied: 0
 updated_time: 2020-02-24T09:57:27.714Z
-created_time: 
+created_time: 2020-02-24T09:57:27.714Z
 type_: 13

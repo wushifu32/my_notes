@@ -1,24 +1,90 @@
+zswap — The Linux Kernel documentation
+
+## Overview[¶](#overview "Permalink to this headline")
+
+Zswap is a lightweight compressed cache for swap pages. It takes pages that are in the process of being swapped out and attempts to compress them into a dynamically allocated RAM-based memory pool. zswap basically trades CPU cycles for potentially reduced swap I/O.  This trade-off can also result in a significant performance improvement if reads from the compressed cache are faster than reads from a swap device.
+
+Note
+
+Zswap is a new feature as of v3.11 and interacts heavily with memory reclaim. This interaction has not been fully explored on the large set of potential configurations and workloads that exist. For this reason, zswap is a work in progress and should be considered experimental.
+
+Some potential benefits:
+
+*   Desktop/laptop users with limited RAM capacities can mitigate the performance impact of swapping.
+*   Overcommitted guests that share a common I/O resource can dramatically reduce their swap I/O pressure, avoiding heavy handed I/O throttling by the hypervisor. This allows more work to get done with less impact to the guest workload and guests sharing the I/O subsystem
+*   Users with SSDs as swap devices can extend the life of the device by drastically reducing life-shortening writes.
+
+Zswap evicts pages from compressed cache on an LRU basis to the backing swap device when the compressed pool reaches its size limit. This requirement had been identified in prior community discussions.
+
+Zswap is disabled by default but can be enabled at boot time by setting the `enabled` attribute to 1 at boot time. ie: `zswap.enabled=1`. Zswap can also be enabled and disabled at runtime using the sysfs interface. An example command to enable zswap at runtime, assuming sysfs is mounted at `/sys`, is:
+
+echo 1 > /sys/module/zswap/parameters/enabled
+
+When zswap is disabled at runtime it will stop storing pages that are being swapped out. However, it will \_not\_ immediately write out or fault back into memory all of the pages stored in the compressed pool. The pages stored in zswap will remain in the compressed pool until they are either invalidated or faulted back into memory. In order to force all pages out of the compressed pool, a swapoff on the swap device(s) will fault back into memory all swapped out pages, including those in the compressed pool.
+
+## Design[¶](#design "Permalink to this headline")
+
+Zswap receives pages for compression through the Frontswap API and is able to evict pages from its own compressed pool on an LRU basis and write them back to the backing swap device in the case that the compressed pool is full.
+
+Zswap makes use of zpool for the managing the compressed memory pool. Each allocation in zpool is not directly accessible by address. Rather, a handle is returned by the allocation routine and that handle must be mapped before being accessed. The compressed memory pool grows on demand and shrinks as compressed pages are freed. The pool is not preallocated. By default, a zpool of type zbud is created, but it can be selected at boot time by setting the `zpool` attribute, e.g. `zswap.zpool=zbud`. It can also be changed at runtime using the sysfs `zpool` attribute, e.g.:
+
+echo zbud > /sys/module/zswap/parameters/zpool
+
+The zbud type zpool allocates exactly 1 page to store 2 compressed pages, which means the compression ratio will always be 2:1 or worse (because of half-full zbud pages). The zsmalloc type zpool has a more complex compressed page storage method, and it can achieve greater storage densities. However, zsmalloc does not implement compressed page eviction, so once zswap fills it cannot evict the oldest page, it can only reject new pages.
+
+When a swap page is passed from frontswap to zswap, zswap maintains a mapping of the swap entry, a combination of the swap type and swap offset, to the zpool handle that references that compressed swap page. This mapping is achieved with a red-black tree per swap type. The swap offset is the search key for the tree nodes.
+
+During a page fault on a PTE that is a swap entry, frontswap calls the zswap load function to decompress the page into the page allocated by the page fault handler.
+
+Once there are no PTEs referencing a swap page stored in zswap (i.e. the count in the swap_map goes to 0) the swap code calls the zswap invalidate function, via frontswap, to free the compressed entry.
+
+Zswap seeks to be simple in its policies. Sysfs attributes allow for one user controlled policy:
+
+*   max\_pool\_percent - The maximum percentage of memory that the compressed pool can occupy.
+
+The default compressor is lzo, but it can be selected at boot time by setting the `compressor` attribute, e.g. `zswap.compressor=lzo`. It can also be changed at runtime using the sysfs “compressor” attribute, e.g.:
+
+echo lzo > /sys/module/zswap/parameters/compressor
+
+When the zpool and/or compressor parameter is changed at runtime, any existing compressed pages are not modified; they are left in their own zpool. When a request is made for a page in an old zpool, it is uncompressed using its original compressor. Once all pages are removed from an old zpool, the zpool and its compressor are freed.
+
+Some of the pages in zswap are same-value filled pages (i.e. contents of the page have same value or repetitive pattern). These pages include zero-filled pages and they are handled differently. During store operation, a page is checked if it is a same-value filled page before compressing it. If true, the compressed length of the page is set to zero and the pattern or same-filled value is stored.
+
+Same-value filled pages identification feature is enabled by default and can be disabled at boot time by setting the `same_filled_pages_enabled` attribute to 0, e.g. `zswap.same_filled_pages_enabled=0`. It can also be enabled and disabled at runtime using the sysfs `same_filled_pages_enabled` attribute, e.g.:
+
+echo 1 > /sys/module/zswap/parameters/same\_filled\_pages_enabled
+
+When zswap same-filled page identification is disabled at runtime, it will stop checking for the same-value filled pages during store operation. However, the existing pages which are marked as same-value filled pages remain stored unchanged in zswap until they are either loaded or invalidated.
+
+To prevent zswap from shrinking pool when zswap is full and there’s a high pressure on swap (this will result in flipping pages in and out zswap pool without any real benefit but with a performance drop for the system), a special parameter has been introduced to implement a sort of hysteresis to refuse taking pages into zswap pool until it has sufficient space if the limit has been hit. To set the threshold at which zswap would start accepting pages again after it became full, use the sysfs `accept_threhsold_percent` attribute, e. g.:
+
+echo 80 > /sys/module/zswap/parameters/accept\_threhsold\_percent
+
+Setting this parameter to 100 will disable the hysteresis.
+
+A debugfs interface is provided for various statistic about pool size, number of pages stored, same-value filled pages and various counters for the reasons pages are rejected.
+
 id: 0eca4d7f8dcd4a3aaa09e0bf7172af6b
 parent_id: cd72a843f7b74732a4f4ba56fdc7ac7f
-created_time: 
+created_time: 2020-02-26T13:00:58.567Z
 updated_time: 2020-02-26T13:00:58.567Z
-is_conflict: 
-latitude: 
-longitude: 
-altitude: 
+is_conflict: 0
+latitude: 0.00000000
+longitude: 0.00000000
+altitude: 0.0000
 author: 
-source_url: 
-is_todo: 
-todo_due: 
-todo_completed: 
-source: 
-source_application: 
+source_url: https://www.kernel.org/doc/html/latest/vm/zswap.html
+is_todo: 0
+todo_due: 0
+todo_completed: 0
+source: joplin-desktop
+source_application: net.cozic.joplin-desktop
 application_data: 
-order: 
-user_created_time: 
-user_updated_time: 
-encryption_cipher_text: JED010000220195dbe43a48d54378b62ae308e2a14152001aae{"iv":"TQpG+z4STBQ4fg+AJdM2XA==","v":1,"iter":1000,"ks":128,"ts":64,"mode":"ocb2","adata":"","cipher":"aes","salt":"A7oC9TeqQaY=","ct":"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"}000efa{"iv":"BGmCs6kvQ4qGC8kcTP4MDA==","v":1,"iter":1000,"ks":128,"ts":64,"mode":"ocb2","adata":"","cipher":"aes","salt":"A7oC9TeqQaY=","ct":"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"}
-encryption_applied: 1
-markup_language: 
-is_shared: 
+order: 0
+user_created_time: 2020-02-26T13:00:58.567Z
+user_updated_time: 2020-02-26T13:00:58.567Z
+encryption_cipher_text: 
+encryption_applied: 0
+markup_language: 1
+is_shared: 0
 type_: 1

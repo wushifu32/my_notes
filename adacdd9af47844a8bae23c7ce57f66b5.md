@@ -1,24 +1,69 @@
+alloc_pages
+
+`alloc_pages` is the main API of physical pages allocator. We all know that this allocator named buddy allocator. The "heart" function of buddy allocator is `__alloc_pages_nodemask`. There is a struct named `struct alloc_context` contains the parameters of the pages' requestion which will be pass to the deep calling function. The parameters are:
+```c
+struct alloc_context {
+	struct zonelist *zonelist;
+	nodemask_t *nodemask;
+	struct zoneref *preferred_zoneref;
+	int migratetype;
+	enum zone_type high_zoneidx;
+	bool spread_dirty_pages;
+};
+```
+
+Let's see the arguments of `alloc_pages`, the first one is gfp_mask, which means "Get Free Pages flag". This argument descriped the features of the requested pages. The gfp_t bits defined in `linux/include/gfp.h`. As the other argument is the size of pages requested.
+
+`should_fail_alloc_page` can provide the page allocate failed injection.
+
+After the sanity check & flags deteminated. Here comes the first allocation `get_page_from_freelist`, try to get pages from the free list of zone. Scan the zonelist to find the proper one with enough free pages. Than call `rmqueue` to get pages and after `prep_new_page`, return the pages to finish allocation.
+
+CMA（Contiguous Memory Allocator）
+
+`/proc/pagetypeinfo` to see the physical pages type.
+
+**The node order to be selected?**
+**What is migration order of pages type?**
+**Watermark boost?**
+
+The name meaning of buddy allocator comes from the `free_pages`. The subtle of buddy is the function `__find_buddy_pfn`:
+```c
+static inline unsigned long
+__find_buddy_pfn(unsigned long page_pfn, unsigned int order)
+{
+	return page_pfn ^ (1 << order);
+}
+```
+This buddy finding implementation is really beautiful.
+
+
+
+
+
+
+
+
 id: adacdd9af47844a8bae23c7ce57f66b5
 parent_id: cd72a843f7b74732a4f4ba56fdc7ac7f
-created_time: 
+created_time: 2020-02-25T06:53:40.932Z
 updated_time: 2020-02-25T14:51:55.904Z
-is_conflict: 
-latitude: 
-longitude: 
-altitude: 
+is_conflict: 0
+latitude: 22.53330000
+longitude: 114.13330000
+altitude: 0.0000
 author: 
 source_url: 
-is_todo: 
-todo_due: 
-todo_completed: 
-source: 
-source_application: 
+is_todo: 0
+todo_due: 0
+todo_completed: 0
+source: joplin-desktop
+source_application: net.cozic.joplin-desktop
 application_data: 
-order: 
-user_created_time: 
-user_updated_time: 
-encryption_cipher_text: JED010000220195dbe43a48d54378b62ae308e2a14152000c8a{"iv":"uomck/cgXx794pWyOKbXfg==","v":1,"iter":1000,"ks":128,"ts":64,"mode":"ocb2","adata":"","cipher":"aes","salt":"A7oC9TeqQaY=","ct":"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"}
-encryption_applied: 1
-markup_language: 
-is_shared: 
+order: 0
+user_created_time: 2020-02-25T06:53:40.932Z
+user_updated_time: 2020-02-25T14:51:55.904Z
+encryption_cipher_text: 
+encryption_applied: 0
+markup_language: 1
+is_shared: 0
 type_: 1
